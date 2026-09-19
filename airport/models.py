@@ -24,7 +24,8 @@ class Route(models.Model):
     distance = models.IntegerField()
 
     def __str__(self):
-        return f"{self.source.name} - {self.destination.name} ({self.distance} km)"
+        return (f"{self.source.name} - {self.destination.name} "
+                f"({self.distance} km)")
 
 
 class AirplaneType(models.Model):
@@ -49,7 +50,8 @@ class Airplane(models.Model):
         return self.rows * self.seats_in_row
 
     def __str__(self):
-        return f"{self.name}: {self.capacity} seats ({self.rows} x {self.seats_in_row})"
+        return (f"{self.name}: {self.capacity} seats "
+                f"({self.rows} x {self.seats_in_row})")
 
 
 class Crew(models.Model):
