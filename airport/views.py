@@ -8,7 +8,6 @@ from airport.models import (
     Crew,
     Flight,
     Order,
-    Ticket,
 )
 from airport.serializers import (
     AirportSerializer,
@@ -18,14 +17,11 @@ from airport.serializers import (
     CrewSerializer,
     FlightSerializer,
     OrderSerializer,
-    TicketSerializer,
     RouteListSerializer,
     AirplaneListSerializer,
     FlightListSerializer,
     FlightDetailSerializer,
-    TicketListSerializer,
     OrderListSerializer,
-    TicketDetailSerializer,
     OrderDetailSerializer,
 )
 
@@ -36,7 +32,7 @@ class AirportViewSet(viewsets.ModelViewSet):
 
 
 class RouteViewSet(viewsets.ModelViewSet):
-    queryset = Route.objects.all()
+    queryset = Route.objects.select_related("source", "destination")
     serializer_class = RouteSerializer
 
     def get_serializer_class(self):
@@ -52,7 +48,7 @@ class AirplaneTypeViewSet(viewsets.ModelViewSet):
 
 
 class AirplaneViewSet(viewsets.ModelViewSet):
-    queryset = Airplane.objects.all()
+    queryset = Airplane.objects.select_related("airplane_type")
     serializer_class = AirplaneSerializer
 
     def get_serializer_class(self):
@@ -68,7 +64,15 @@ class CrewViewSet(viewsets.ModelViewSet):
 
 
 class FlightViewSet(viewsets.ModelViewSet):
-    queryset = Flight.objects.all()
+    queryset = (
+        Flight.objects
+        .select_related(
+            "route__source",
+            "route__destination",
+            "airplane__airplane_type"
+        )
+        .prefetch_related("crew")
+    )
     serializer_class = FlightSerializer
 
     def get_serializer_class(self):
@@ -86,7 +90,16 @@ class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user)
+        return (
+            Order.objects
+            .filter(user=self.request.user)
+            .prefetch_related(
+                "tickets__flight__route__source",
+                "tickets__flight__route__destination",
+                "tickets__flight__airplane__airplane_type",
+                "tickets__flight__crew"
+            )
+        )
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -99,17 +112,3 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-
-
-class TicketViewSet(viewsets.ModelViewSet):
-    queryset = Ticket.objects.all()
-    serializer_class = TicketSerializer
-
-    def get_serializer_class(self):
-        if self.action == "list":
-            return TicketListSerializer
-
-        if self.action == "retrieve":
-            return TicketDetailSerializer
-
-        return TicketSerializer

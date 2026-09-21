@@ -99,6 +99,30 @@ class TicketSerializer(serializers.ModelSerializer):
         fields = ("id", "row", "seat", "flight", "order")
         read_only_fields = ("order",)
 
+    def validate(self, attrs):
+        flight = attrs["flight"]
+        row = attrs["row"]
+        seat = attrs["seat"]
+
+        if not 1 <= row <= flight.airplane.rows:
+            raise serializers.ValidationError(
+                {"row": f"Row number must be in range (1, {flight.airplane.rows})."}
+            )
+
+        if not 1 <= seat <= flight.airplane.seats_in_row:
+            raise serializers.ValidationError(
+                {"seat": f"Seat number must be in range (1, {flight.airplane.seats_in_row})."}
+            )
+
+        if Ticket.objects.filter(
+            flight=flight,
+            row=row,
+            seat=seat
+        ).exists():
+            raise serializers.ValidationError("This seat is already reserved!")
+
+        return attrs
+
 
 class TicketListSerializer(TicketSerializer):
     flight = serializers.StringRelatedField()
