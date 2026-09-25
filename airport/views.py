@@ -1,3 +1,6 @@
+from datetime import datetime, time
+from django.utils import timezone
+
 from rest_framework import viewsets, mixins
 from rest_framework.permissions import IsAuthenticated
 
@@ -105,6 +108,44 @@ class FlightViewSet(
         .prefetch_related("crew")
     )
     serializer_class = FlightSerializer
+
+    @staticmethod
+    def _params_to_ints(qs):
+        return [int(str_id) for str_id in qs.split(",")]
+
+    @staticmethod
+    def _date_to_range(str_date):
+        date = datetime.strptime(str_date, "%Y-%m-%d").date()
+        return (
+            timezone.make_aware(datetime.combine(date, time.min)),
+            timezone.make_aware(datetime.combine(date, time.max))
+        )
+
+    def get_queryset(self):
+        source = self.request.query_params.get("source")
+        destination = self.request.query_params.get("destination")
+        departure_time = self.request.query_params.get("departure-time")
+        arrival_time = self.request.query_params.get("arrival-time")
+
+        queryset = self.queryset
+
+        if source:
+            source_ids = self._params_to_ints(source)
+            queryset = queryset.filter(route__source_id__in=source_ids)
+
+        if destination:
+            destination_ids = self._params_to_ints(destination)
+            queryset = queryset.filter(route__destination_id__in=destination_ids)
+
+        if departure_time:
+            datetime_range = self._date_to_range(departure_time)
+            queryset = queryset.filter(departure_time__range=datetime_range)
+
+        if arrival_time:
+            datetime_range = self._date_to_range(arrival_time)
+            queryset = queryset.filter(arrival_time__range=datetime_range)
+
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "list":
