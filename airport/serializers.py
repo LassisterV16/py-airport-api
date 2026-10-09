@@ -106,12 +106,14 @@ class TicketSerializer(serializers.ModelSerializer):
 
         if not 1 <= row <= flight.airplane.rows:
             raise serializers.ValidationError(
-                {"row": f"Row number must be in range (1, {flight.airplane.rows})."}
+                {"row": f"Row number must be in range"
+                        f" (1, {flight.airplane.rows})."}
             )
 
         if not 1 <= seat <= flight.airplane.seats_in_row:
             raise serializers.ValidationError(
-                {"seat": f"Seat number must be in range (1, {flight.airplane.seats_in_row})."}
+                {"seat": f"Seat number must be in range"
+                         f" (1, {flight.airplane.seats_in_row})."}
             )
 
         if Ticket.objects.filter(
@@ -146,6 +148,22 @@ class OrderSerializer(serializers.ModelSerializer):
             for ticket_data in tickets_data:
                 Ticket.objects.create(order=order, **ticket_data)
             return order
+
+    def validate(self, attrs):
+        tickets = attrs.get("tickets", [])
+        seats = []
+
+        for ticket in tickets:
+            seat_identifier = (ticket["flight"], ticket["row"], ticket["seat"])
+
+            if seat_identifier in seats:
+                raise serializers.ValidationError(
+                    "You can't reserve the same seats in a single order!"
+                )
+
+            seats.append(seat_identifier)
+
+        return attrs
 
 
 class OrderListSerializer(OrderSerializer):
