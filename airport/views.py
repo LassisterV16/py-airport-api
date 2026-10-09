@@ -1,5 +1,7 @@
 from datetime import datetime, time
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from rest_framework import viewsets, mixins
 from rest_framework.permissions import IsAuthenticated
@@ -96,6 +98,7 @@ class FlightViewSet(
     mixins.ListModelMixin,
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
     queryset = (
@@ -131,19 +134,27 @@ class FlightViewSet(
 
         if source:
             source_ids = self._params_to_ints(source)
-            queryset = queryset.filter(route__source_id__in=source_ids)
+            queryset = queryset.filter(
+                route__source_id__in=source_ids
+            )
 
         if destination:
             destination_ids = self._params_to_ints(destination)
-            queryset = queryset.filter(route__destination_id__in=destination_ids)
+            queryset = queryset.filter(
+                route__destination_id__in=destination_ids
+            )
 
         if departure_time:
             datetime_range = self._date_to_range(departure_time)
-            queryset = queryset.filter(departure_time__range=datetime_range)
+            queryset = queryset.filter(
+                departure_time__range=datetime_range
+            )
 
         if arrival_time:
             datetime_range = self._date_to_range(arrival_time)
-            queryset = queryset.filter(arrival_time__range=datetime_range)
+            queryset = queryset.filter(
+                arrival_time__range=datetime_range
+            )
 
         return queryset
 
@@ -155,6 +166,37 @@ class FlightViewSet(
             return FlightDetailSerializer
 
         return FlightSerializer
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "source",
+                type=OpenApiTypes.INT,
+                many=True,
+                description="Filter by source id (ex. ?source=3,7)",
+            ),
+            OpenApiParameter(
+                "destination",
+                type=OpenApiTypes.INT,
+                many=True,
+                description="Filter by destination id (ex. ?destination=3,7)",
+            ),
+            OpenApiParameter(
+                "departure-time",
+                type=OpenApiTypes.DATE,
+                description="Filter by flight departure date"
+                            " in the YYYY-MM-DD format",
+            ),
+            OpenApiParameter(
+                "arrival-time",
+                type=OpenApiTypes.DATE,
+                description="Filter by flight arrival date"
+                            " in the YYYY-MM-DD format",
+            )
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class OrderViewSet(
