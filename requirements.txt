@@ -1,0 +1,11 @@
+Django
+djangorestframework
+djangorestframework-simplejwt
+drf-spectacular
+django-debug-toolbar
+psycopg2-binary
+Pillow
+flake8
+flake8-quotes
+flake8-variables-names
+pep8-naming
